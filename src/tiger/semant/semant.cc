@@ -14,7 +14,7 @@ type::Ty *SimpleVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* TODO: Put your lab4 code here */
   env::EnvEntry *entry = venv->Look(this->sym_);
   env::VarEntry *varEntry = dynamic_cast<env::VarEntry *>(entry);
-  if (varEntry!=nullptr) {
+  if (varEntry != nullptr) {
     return varEntry->ty_->ActualTy();
   } else {
     errormsg->Error(this->pos_, "undefined variable %s",
@@ -37,7 +37,8 @@ type::Ty *FieldVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     if ((*iter)->name_ == this->sym_)
       return (*iter)->ty_;
   }
-  errormsg->Error(this->pos_, "field %s doesn't exist", this->sym_->Name().c_str());
+  errormsg->Error(this->pos_, "field %s doesn't exist",
+                  this->sym_->Name().c_str());
   return type::IntTy::Instance();
 }
 
@@ -186,9 +187,10 @@ type::Ty *RecordExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto tyIter = tyFieldsList.cbegin();
 
   while (thisIter != thisFieldsList.cend() && tyIter != tyFieldsList.cend()) {
-    // errormsg->Error(this->pos_, "expected %s, got %s",(*tyIter)->name_->Name().c_str(),(*thisIter)->name_->Name().c_str());
     if ((*thisIter)->name_ != (*tyIter)->name_) {
-      errormsg->Error(this->pos_, "record field name mismatch, expected %s, got %s",(*tyIter)->name_->Name().c_str(),(*thisIter)->name_->Name().c_str());
+      errormsg->Error(
+          this->pos_, "record field name mismatch, expected %s, got %s",
+          (*tyIter)->name_->Name().c_str(), (*thisIter)->name_->Name().c_str());
       return type::IntTy::Instance();
     }
     type::Ty *fieldTy =
@@ -257,8 +259,7 @@ type::Ty *IfExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   if (!this->elsee_) {
     if (!thenTy->IsSameType(type::VoidTy::Instance())) {
-      errormsg->Error(this->pos_,
-                      "if-then exp's body must produce no value");
+      errormsg->Error(this->pos_, "if-then exp's body must produce no value");
     }
     return type::VoidTy::Instance();
   } else {
@@ -447,7 +448,6 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
     if (dynamic_cast<type::NilTy *>(initTy->ActualTy())) {
       errormsg->Error(this->pos_,
                       "init should not be nil without type specified");
-      // errormsg->Error(this->pos_,"%s",typeid(initTy).name());//TODO: remove this
       initTy = type::IntTy::Instance(); // TODO: check this
     }
     venv->Enter(this->var_, new env::VarEntry(initTy));
@@ -495,24 +495,15 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
     type::NameTy *startNameTy;
     if (startNameTy = dynamic_cast<type::NameTy *>(startTy)) {
       type::Ty *currentTy = startNameTy->ty_;
-      // auto a=(typeid(currentTy)==typeid(type::NameTy));
-      
       type::NameTy *nameTy;
-      // errormsg->Error(this->pos_, "%s",(currentTy->ActualTy()));
-      // if(typeid(*currentTy)==typeid(type::NameTy))nameTy= (type::NameTy *)(currentTy);
-      // else nameTy=nullptr;
-      
-      while (nameTy= dynamic_cast<type::NameTy *>(currentTy)) {
-        // errormsg->Error(this->pos_, "%s %s",nameTy->sym_->Name().c_str(),startNameTy->sym_->Name().c_str());
+
+      while (nameTy = dynamic_cast<type::NameTy *>(currentTy)) {
         if (nameTy->sym_ == startNameTy->sym_) {
           errormsg->Error(this->pos_, "illegal type cycle");
-          cycle=true;
+          cycle = true;
           break;
         }
-        currentTy=nameTy->ty_;
-        
-        // if(typeid(*currentTy)==typeid(type::NameTy))nameTy= (type::NameTy *)(currentTy);
-        // else nameTy=nullptr;
+        currentTy = nameTy->ty_;
       }
     }
     if (cycle)
@@ -528,7 +519,7 @@ type::Ty *NameTy::SemAnalyze(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
                     this->name_->Name().c_str());
     return type::IntTy::Instance();
   }
-  return new type::NameTy(this->name_,ty);
+  return new type::NameTy(this->name_, ty);
 }
 
 type::Ty *RecordTy::SemAnalyze(env::TEnvPtr tenv,
