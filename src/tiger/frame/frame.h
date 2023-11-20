@@ -76,6 +76,10 @@ public:
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  virtual temp::Label name()=0;
+  virtual std::list<Access *> formals()=0;
+  virtual Access *allocLocal(bool escape)=0;
 };
 
 /**
