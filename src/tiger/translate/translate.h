@@ -9,6 +9,7 @@
 #include "tiger/errormsg/errormsg.h"
 #include "tiger/frame/frame.h"
 #include "tiger/semant/types.h"
+#include "tiger/frame/x64frame.h"
 
 namespace tr {
 
@@ -19,18 +20,23 @@ class Level;
 class PatchList {
 public:
   void DoPatch(temp::Label *label) {
-    for(auto &patch : patch_list_) *patch = label;
+    for (auto &patch : patch_list_)
+      *patch = label;
   }
 
   static PatchList JoinPatch(const PatchList &first, const PatchList &second) {
     PatchList ret(first.GetList());
-    for(auto &patch : second.patch_list_) {
+    for (auto &patch : second.patch_list_) {
       ret.patch_list_.push_back(patch);
     }
     return ret;
   }
 
-  explicit PatchList(std::list<temp::Label **> patch_list) : patch_list_(patch_list) {}
+  explicit PatchList(std::list<temp::Label **> patch_list)
+      : patch_list_(patch_list) {}
+
+  explicit PatchList(temp::Label **patch) : patch_list_({patch}) {}
+
   PatchList() = default;
 
   [[nodiscard]] const std::list<temp::Label **> &GetList() const {
@@ -57,11 +63,32 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
+  Level(Level *parent, temp::Label *name, const std::list<bool> &formals) {
+    // frame_ = frame;
+    parent_ = parent;
+    std::list<bool> new_formals(formals);
+    new_formals.push_front(true); // static link
+    frame_ = new frame::X64Frame(name, new_formals);
+  }
+
+  // only used to create main level
+  explicit Level(frame::Frame *frame) : frame_(frame), parent_(nullptr) {}
 };
 
 class ProgTr {
 public:
   // TODO: Put your lab5 code here */
+  ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,
+         std::unique_ptr<err::ErrorMsg> errormsg)
+      : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)) {
+    auto *main_frame = new frame::X64Frame(
+        temp::LabelFactory::NamedLabel("tigermain"), std::list<bool>());
+    main_level_.reset(new tr::Level(main_frame));
+    venv_.reset(new env::VEnv());
+    tenv_.reset(new env::TEnv());
+    FillBaseVEnv();
+    FillBaseTEnv();
+  }
 
   /**
    * Translate IR tree
@@ -76,7 +103,6 @@ public:
     return std::move(errormsg_);
   }
 
-
 private:
   std::unique_ptr<absyn::AbsynTree> absyn_tree_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
@@ -88,6 +114,10 @@ private:
   void FillBaseVEnv();
   void FillBaseTEnv();
 };
+
+// utility functions
+tree::Exp *calc_static_link(tr::Level *current_level, tr::Level *dest_level,
+                            tree::Exp *frame_pointer);
 
 } // namespace tr
 
