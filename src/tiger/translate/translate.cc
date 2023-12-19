@@ -8,8 +8,6 @@
 #include "tiger/frame/temp.h"
 #include "tiger/frame/x64frame.h"
 
-#include "tiger/output/logger.h"
-
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
 
@@ -594,7 +592,6 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     temp::Label *end_label = temp::LabelFactory::NewLabel();
     test_cx.trues_.DoPatch(true_label);
     test_cx.falses_.DoPatch(false_label);
-    Logger().Log(test_cx.stm_);
 
     temp::Temp *r = temp::TempFactory::NewTemp();
     res_exp = new tr::ExExp(new tree::EseqExp(
