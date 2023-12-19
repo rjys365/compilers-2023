@@ -147,6 +147,10 @@ public:
 };
 
 void ProgTr::Translate() { /* TODO: Put your lab5 code here */
+  auto *root_exp_ty=this->absyn_tree_->Translate(this->venv_.get(), this->tenv_.get(),
+                               this->main_level_.get(), nullptr,
+                               this->errormsg_.get());
+  frags->PushBack(new frame::ProcFrag(root_exp_ty->exp_->UnNx(), this->main_level_->frame_));
 }
 
 tree::Exp *calc_static_link(tr::Level *current_level, tr::Level *dest_level,
@@ -279,7 +283,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto *fun_entry = dynamic_cast<env::FunEntry *>(entry);
   assert(fun_entry != nullptr);
 
-  bool is_library_func = (fun_entry->level_->parent_ != nullptr);
+  bool is_library_func = (fun_entry->level_->parent_ == nullptr);
 
   const auto &args_list = this->args_->GetList();
   tree::ExpList *tree_args_list = new tree::ExpList();
@@ -287,7 +291,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   if (!is_library_func) {
     tree::Exp *fp = new tree::TempExp(reg_manager->FramePointer());
     tr::Level *current_level = level;
-    tr::Level *dest_level = fun_entry->level_;
+    tr::Level *dest_level = fun_entry->level_->parent_;
     tree::Exp *static_link =
         tr::calc_static_link(current_level, dest_level, fp);
     tree_args_list->Append(static_link);
@@ -306,7 +310,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
   if (is_library_func) {
     res_exp =
-        level->frame_->externalCall(fun_entry->label_->Name(), tree_args_list);
+        level->frame_->externalCall(temp::LabelFactory::LabelString(this->func_), tree_args_list);
   } else {
     res_exp =
         new tree::CallExp(new tree::NameExp(fun_entry->label_), tree_args_list);

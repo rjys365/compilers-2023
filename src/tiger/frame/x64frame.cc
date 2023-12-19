@@ -35,7 +35,7 @@ X64Frame::X64Frame(temp::Label *name, const std::list<bool> &formals)
   }
 }
 
-std::string X64Frame::getlabel() { return label->Name(); }
+std::string X64Frame::getlabel() { return temp::LabelFactory::LabelString(label); }
 
 Access *X64Frame::allocLocal(bool escape) {
   if (escape) {
@@ -85,6 +85,7 @@ tree::Stm *X64Frame::procEntryExit1(tree::Stm *stm) {
       new_stm = new tree::SeqStm(new_stm, move_stm);
     }
     arg_cnt++;
+    arg_regs_iter++;
   }
   new_stm = new tree::SeqStm(new_stm, stm);
   return new_stm;
@@ -163,9 +164,10 @@ temp::TempList *X64RegManager::CallerSaves() {
 
 temp::TempList *X64RegManager::CalleeSaves() {
   // Implement the logic to return callee-saved registers.
+  // will be saved and restored by ProcEntryExit3
   temp::TempList *temp_list = new temp::TempList();
   temp_list->Append(registers[1]);  // rbx
-  temp_list->Append(registers[6]);  // rbp
+  temp_list->Append(registers[6]);  // rbp 
   temp_list->Append(registers[12]); // r12
   temp_list->Append(registers[13]); // r13
   temp_list->Append(registers[14]); // r14
