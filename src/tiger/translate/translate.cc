@@ -8,6 +8,8 @@
 #include "tiger/frame/temp.h"
 #include "tiger/frame/x64frame.h"
 
+#include "tiger/output/logger.h"
+
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
 
@@ -59,9 +61,8 @@ public:
   }
   [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) override {
     /* TODO: Put your lab5 code here */
-
     // special case for CONST(0/1)
-    if (auto *const_exp = reinterpret_cast<tree::ConstExp *>(this->exp_)) {
+    if (auto *const_exp = dynamic_cast<tree::ConstExp *>(this->exp_)) {
       auto labels_list = new std::vector<temp::Label *>();
       labels_list->push_back(nullptr);
       auto jump_stm =
@@ -83,8 +84,7 @@ public:
     list_true.push_back(&cjump_stm->true_label_);
     list_false.push_back(&cjump_stm->false_label_);
 
-    return Cx(PatchList(list_true), PatchList(list_false),
-              new tree::ExpStm(this->exp_));
+    return Cx(PatchList(list_true), PatchList(list_false), cjump_stm);
   }
 };
 
@@ -147,10 +147,11 @@ public:
 };
 
 void ProgTr::Translate() { /* TODO: Put your lab5 code here */
-  auto *root_exp_ty=this->absyn_tree_->Translate(this->venv_.get(), this->tenv_.get(),
-                               this->main_level_.get(), nullptr,
-                               this->errormsg_.get());
-  frags->PushBack(new frame::ProcFrag(root_exp_ty->exp_->UnNx(), this->main_level_->frame_));
+  auto *root_exp_ty = this->absyn_tree_->Translate(
+      this->venv_.get(), this->tenv_.get(), this->main_level_.get(), nullptr,
+      this->errormsg_.get());
+  frags->PushBack(new frame::ProcFrag(root_exp_ty->exp_->UnNx(),
+                                      this->main_level_->frame_));
 }
 
 tree::Exp *calc_static_link(tr::Level *current_level, tr::Level *dest_level,
@@ -309,8 +310,8 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
 
   if (is_library_func) {
-    res_exp =
-        level->frame_->externalCall(temp::LabelFactory::LabelString(this->func_), tree_args_list);
+    res_exp = level->frame_->externalCall(
+        temp::LabelFactory::LabelString(this->func_), tree_args_list);
   } else {
     res_exp =
         new tree::CallExp(new tree::NameExp(fun_entry->label_), tree_args_list);
@@ -368,7 +369,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       exp_list->Append(right_exp);
       cjump_stm = new tree::CjumpStm(
           tree::RelOp::EQ_OP,
-          level->frame_->externalCall("stringEqual", exp_list),
+          level->frame_->externalCall("string_equal", exp_list),
           new tree::ConstExp(1), nullptr, nullptr);
     } else {
       cjump_stm = new tree::CjumpStm(tree::RelOp::EQ_OP, left_exp, right_exp,
@@ -411,6 +412,88 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                                    right_exp, nullptr, nullptr);
     res_exp = new tr::CxExp(tr::PatchList(&cjump_stm->true_label_),
                             tr::PatchList(&cjump_stm->false_label_), cjump_stm);
+    break;
+  }
+  case Oper::AND_OP: {
+    tr::Cx left_cx = left_exp_ty->exp_->UnCx(errormsg);
+    tr::Cx right_cx = right_exp_ty->exp_->UnCx(errormsg);
+    // Logger(stdout).Log(left_cx.stm_);
+    temp::Label *true_label_1 = temp::LabelFactory::NewLabel();
+    temp::Label *true_label_2 = temp::LabelFactory::NewLabel();
+    temp::Label *false_label = temp::LabelFactory::NewLabel();
+    temp::Label *end_label = temp::LabelFactory::NewLabel();
+    temp::Temp *r = temp::TempFactory::NewTemp();
+    left_cx.trues_.DoPatch(true_label_1);
+    right_cx.trues_.DoPatch(true_label_2);
+    left_cx.falses_.DoPatch(false_label);
+    right_cx.falses_.DoPatch(false_label);
+    auto *eseq = new tree::EseqExp(
+        new tree::SeqStm(
+            left_cx.stm_,
+            new tree::SeqStm(
+                new tree::LabelStm(true_label_1),
+                new tree::SeqStm(
+                    right_cx.stm_,
+                    new tree::SeqStm(
+                        new tree::LabelStm(true_label_2),
+                        new tree::SeqStm(
+                            new tree::MoveStm(new tree::TempExp(r),
+                                              new tree::ConstExp(1)),
+                            new tree::SeqStm(
+                                new tree::JumpStm(
+                                    new tree::NameExp(end_label),
+                                    new std::vector<temp::Label *>(
+                                        {end_label})),
+                                new tree::SeqStm(
+                                    new tree::LabelStm(false_label),
+                                    new tree::SeqStm(
+                                        new tree::MoveStm(
+                                            new tree::TempExp(r),
+                                            new tree::ConstExp(0)),
+                                        new tree::LabelStm(end_label))))))))),
+        new tree::TempExp(r));
+    // Logger().Log(new tree::ExpStm(eseq));
+    res_exp = new tr::ExExp(eseq);
+    break;
+  }
+  case Oper::OR_OP: {
+    tr::Cx left_cx = left_exp_ty->exp_->UnCx(errormsg);
+    tr::Cx right_cx = right_exp_ty->exp_->UnCx(errormsg);
+    temp::Label *true_label = temp::LabelFactory::NewLabel();
+    temp::Label *false_label_1 = temp::LabelFactory::NewLabel();
+    temp::Label *false_label_2 = temp::LabelFactory::NewLabel();
+    temp::Label *end_label = temp::LabelFactory::NewLabel();
+    temp::Temp *r = temp::TempFactory::NewTemp();
+    left_cx.trues_.DoPatch(true_label);
+    right_cx.trues_.DoPatch(true_label);
+    left_cx.falses_.DoPatch(false_label_1);
+    right_cx.falses_.DoPatch(false_label_2);
+    auto *eseq = new tree::EseqExp(
+        new tree::SeqStm(
+            left_cx.stm_,
+            new tree::SeqStm(
+                new tree::LabelStm(false_label_1),
+                new tree::SeqStm(
+                    right_cx.stm_,
+                    new tree::SeqStm(
+                        new tree::LabelStm(false_label_2),
+                        new tree::SeqStm(
+                            new tree::MoveStm(new tree::TempExp(r),
+                                              new tree::ConstExp(0)),
+                            new tree::SeqStm(
+                                new tree::JumpStm(
+                                    new tree::NameExp(end_label),
+                                    new std::vector<temp::Label *>(
+                                        {end_label})),
+                                new tree::SeqStm(
+                                    new tree::LabelStm(true_label),
+                                    new tree::SeqStm(
+                                        new tree::MoveStm(
+                                            new tree::TempExp(r),
+                                            new tree::ConstExp(1)),
+                                        new tree::LabelStm(end_label))))))))),
+        new tree::TempExp(r));
+    res_exp = new tr::ExExp(eseq);
     break;
   }
   default:
@@ -511,6 +594,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     temp::Label *end_label = temp::LabelFactory::NewLabel();
     test_cx.trues_.DoPatch(true_label);
     test_cx.falses_.DoPatch(false_label);
+    Logger().Log(test_cx.stm_);
 
     temp::Temp *r = temp::TempFactory::NewTemp();
     res_exp = new tr::ExExp(new tree::EseqExp(

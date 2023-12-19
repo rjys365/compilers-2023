@@ -14,28 +14,30 @@ class X64RegManager : public RegManager {
 private:
   std::vector<temp::Temp *> registers;
   void add_register(std::string name);
+
 public:
   X64RegManager();
   ~X64RegManager();
 
-   temp::TempList *Registers() override;
-   temp::TempList *ArgRegs() override;
-   temp::TempList *CallerSaves() override;
-   temp::TempList *CalleeSaves() override;
-   temp::TempList *ReturnSink() override;
-   int WordSize() override;
-   temp::Temp *FramePointer() override;
-   temp::Temp *StackPointer() override;
-   temp::Temp *ReturnValue() override;
+  temp::TempList *Registers() override;
+  temp::TempList *ArgRegs() override;
+  temp::TempList *CallerSaves() override;
+  temp::TempList *CalleeSaves() override;
+  temp::TempList *ReturnSink() override;
+  int WordSize() override;
+  temp::Temp *FramePointer() override;
+  temp::Temp *StackPointer() override;
+  temp::Temp *ReturnValue() override;
+  temp::TempList *SpecialArithmaticOpRegs() override;
 };
-
 
 class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 private:
   temp::Label *label;
   std::list<Access *> formal_list;
-  int last_frame_var_offset=0;
+  int last_frame_var_offset = 0;
+
 public:
   // this class should be able to be created by
   // Constructor(temp::Label *name, std::list<bool> formals)
@@ -48,11 +50,13 @@ public:
 
   temp::Label *name() override;
 
-  
-
   tree::Exp *externalCall(std::string s, tree::ExpList *args) override;
 
   tree::Stm *procEntryExit1(tree::Stm *stm) override;
+
+  assem::InstrList *procEntryExit2(assem::InstrList *body);
+
+  assem::Proc *procEntryExit3(assem::InstrList *body);
 };
 
 } // namespace frame

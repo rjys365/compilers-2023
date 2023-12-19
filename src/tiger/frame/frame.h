@@ -63,6 +63,11 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  /**
+   * registers used in mul and div
+  */
+  [[nodiscard]] virtual temp::TempList *SpecialArithmaticOpRegs() = 0;
+
   temp::Map *temp_map_;
 
 protected:
@@ -98,10 +103,10 @@ public:
 
   virtual tree::Stm *procEntryExit1(tree::Stm *stm) = 0;
 
-  // virtual assem::InstrList *procEntryExit2(assem::InstrList *body)=0;
+  virtual assem::InstrList *procEntryExit2(assem::InstrList *body)=0;
   // it doesn't need "this" pointer in Tiger book
 
-  // assem::Proc *procEntryExit3(assem::InstrList *body)=0;
+  virtual assem::Proc *procEntryExit3(assem::InstrList *body)=0;
 
   // assem::InstrList *codegen(std::list<tree::Stm *> stmList)=0; in codegen.h
 };

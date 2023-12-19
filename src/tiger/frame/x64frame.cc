@@ -35,7 +35,9 @@ X64Frame::X64Frame(temp::Label *name, const std::list<bool> &formals)
   }
 }
 
-std::string X64Frame::getlabel() { return temp::LabelFactory::LabelString(label); }
+std::string X64Frame::getlabel() {
+  return temp::LabelFactory::LabelString(label);
+}
 
 Access *X64Frame::allocLocal(bool escape) {
   if (escape) {
@@ -74,7 +76,8 @@ tree::Stm *X64Frame::procEntryExit1(tree::Stm *stm) {
     } else {
       formal_exp = new tree::MemExp(new tree::BinopExp(
           tree::BinOp::PLUS_OP, new tree::TempExp(reg_manager->FramePointer()),
-          new tree::ConstExp((arg_cnt - 6 + 2) * reg_manager->WordSize())));
+          new tree::ConstExp((arg_cnt - 6 + 1) * reg_manager->WordSize())));
+      // no pushq %rbp, so only need to skip the return value
     }
     tree::Stm *move_stm = new tree::MoveStm(
         formal->Exp(new tree::TempExp(reg_manager->FramePointer())),
@@ -85,10 +88,31 @@ tree::Stm *X64Frame::procEntryExit1(tree::Stm *stm) {
       new_stm = new tree::SeqStm(new_stm, move_stm);
     }
     arg_cnt++;
-    arg_regs_iter++;
+    if(arg_regs_iter!=arg_regs_list.end())arg_regs_iter++;
   }
   new_stm = new tree::SeqStm(new_stm, stm);
   return new_stm;
+}
+
+assem::InstrList *X64Frame::procEntryExit2(assem::InstrList *body) {
+  body->Append(new assem::OperInstr("", new temp::TempList(),
+                                    reg_manager->ReturnSink(), nullptr));
+  return body;
+}
+
+assem::Proc *X64Frame::procEntryExit3(assem::InstrList *body) {
+  // TODO
+  std::string prolog = ".set " + this->label->Name() + "_framesize, " +
+                       std::to_string(-last_frame_var_offset) + "\n";
+  prolog += this->label->Name() + ":\n";
+
+  prolog += "subq $" + std::to_string(-last_frame_var_offset) + ", %rsp\n";
+
+  std::string epilog =
+      "addq $" + std::to_string(-last_frame_var_offset) + ", %rsp\n";
+  epilog += "retq\n";
+
+  return new assem::Proc(prolog, body, epilog);
 }
 
 /* TODO: Put your lab5 code here */
@@ -110,14 +134,15 @@ X64RegManager::X64RegManager() {
   add_register("%rdi");
   add_register("%rbp");
   add_register("%rsp");
-  add_register("r8");
-  add_register("r9");
-  add_register("r10");
-  add_register("r11");
-  add_register("r12");
-  add_register("r13");
-  add_register("r14");
-  add_register("r15");
+  add_register("%r8");
+  add_register("%r9");
+  add_register("%r10");
+  add_register("%r11");
+  add_register("%r12");
+  add_register("%r13");
+  add_register("%r14");
+  add_register("%r15");
+  add_register("virtual_frame_pointer"); // shouldn't appear in real assembly
 }
 
 X64RegManager::~X64RegManager() {
@@ -127,8 +152,8 @@ X64RegManager::~X64RegManager() {
 temp::TempList *X64RegManager::Registers() {
   // Implement the logic to return general-purpose registers, excluding RSP.
   temp::TempList *temp_list = new temp::TempList();
-  for (int i = 0; i < 15; i++) {
-    if (i != 6 && i != 7) {
+  for (int i = 0; i < 16; i++) {
+    if (i != 7) {
       temp_list->Append(registers[i]);
     }
   }
@@ -167,7 +192,7 @@ temp::TempList *X64RegManager::CalleeSaves() {
   // will be saved and restored by ProcEntryExit3
   temp::TempList *temp_list = new temp::TempList();
   temp_list->Append(registers[1]);  // rbx
-  temp_list->Append(registers[6]);  // rbp 
+  temp_list->Append(registers[6]);  // rbp
   temp_list->Append(registers[12]); // r12
   temp_list->Append(registers[13]); // r13
   temp_list->Append(registers[14]); // r14
@@ -191,7 +216,8 @@ int X64RegManager::WordSize() {
 
 temp::Temp *X64RegManager::FramePointer() {
   // Implement the logic to return the frame pointer register.
-  return registers[6]; // rbp
+  // return registers[6]; // rbp
+  return registers[16];
 }
 
 temp::Temp *X64RegManager::StackPointer() {
@@ -201,7 +227,14 @@ temp::Temp *X64RegManager::StackPointer() {
 
 temp::Temp *X64RegManager::ReturnValue() {
   // Implement the logic to return the register for return value.
-  return registers[0];// rax
+  return registers[0]; // rax
+}
+
+temp::TempList *X64RegManager::SpecialArithmaticOpRegs() {
+  temp::TempList *temp_list = new temp::TempList();
+  temp_list->Append(registers[0]); // rax
+  temp_list->Append(registers[3]); // rdx
+  return temp_list;
 }
 
 } // namespace frame
