@@ -136,7 +136,7 @@ std::string MemoryAddress::munch(assem::InstrList &instr_list,
       current_temp_idx++;
     }
     temp::Temp *index_temp = this->index->Munch(instr_list, fs);
-    res += ", `s" + std::to_string(current_temp_idx) + ", " +
+    res += ",`s" + std::to_string(current_temp_idx) + "," +
            std::to_string(scale) + ")";
     temp_list->Append(index_temp);
     current_temp_idx++;
