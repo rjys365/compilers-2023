@@ -36,8 +36,8 @@ struct MemoryAddress {
   int8_t scale;
   tree::Exp *index;
 
-  std::string
-  munch(assem::InstrList &instr_list, std::string_view fs, int &current_temp_idx, temp::TempList *temp_list);
+  std::string munch(assem::InstrList &instr_list, std::string_view fs,
+                    int &current_temp_idx, temp::TempList *temp_list);
 };
 
 // TODO: munch memory address

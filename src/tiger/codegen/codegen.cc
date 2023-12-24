@@ -444,7 +444,8 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       instr_list.Append(new assem::OperInstr(
           "movq `s0, (`s1)", nullptr,
           new temp::TempList(
-              {args_temps->NthTemp(arg_cnt), reg_manager->StackPointer()}),nullptr));
+              {args_temps->NthTemp(arg_cnt), reg_manager->StackPointer()}),
+          nullptr));
     }
   }
   instr_list.Append(new assem::OperInstr(
