@@ -57,6 +57,8 @@ public:
   assem::InstrList *procEntryExit2(assem::InstrList *body);
 
   assem::Proc *procEntryExit3(assem::InstrList *body);
+
+  int directlyAllocInFrameLocal() override;
 };
 
 } // namespace frame

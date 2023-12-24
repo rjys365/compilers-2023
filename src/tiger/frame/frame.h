@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 
+#include "tiger/codegen/assem.h"
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
-#include "tiger/codegen/assem.h"
-
 
 namespace frame {
 
@@ -65,7 +64,7 @@ public:
 
   /**
    * registers used in mul and div
-  */
+   */
   [[nodiscard]] virtual temp::TempList *SpecialArithmaticOpRegs() = 0;
 
   temp::Map *temp_map_;
@@ -103,10 +102,12 @@ public:
 
   virtual tree::Stm *procEntryExit1(tree::Stm *stm) = 0;
 
-  virtual assem::InstrList *procEntryExit2(assem::InstrList *body)=0;
+  virtual assem::InstrList *procEntryExit2(assem::InstrList *body) = 0;
   // it doesn't need "this" pointer in Tiger book
 
-  virtual assem::Proc *procEntryExit3(assem::InstrList *body)=0;
+  virtual assem::Proc *procEntryExit3(assem::InstrList *body) = 0;
+
+  virtual int directlyAllocInFrameLocal() = 0;
 
   // assem::InstrList *codegen(std::list<tree::Stm *> stmList)=0; in codegen.h
 };
@@ -128,7 +129,8 @@ public:
    *Generate assembly for main program
    * @param out FILE object for output assembly file
    */
-  virtual void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const = 0;
+  virtual void OutputAssem(FILE *out, OutputPhase phase,
+                           bool need_ra) const = 0;
 };
 
 class StringFrag : public Frag {

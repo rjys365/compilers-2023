@@ -456,10 +456,10 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
           "subq $" + std::to_string(reg_manager->WordSize()) + ", `s0",
           new temp::TempList(reg_manager->StackPointer()),
           new temp::TempList(reg_manager->StackPointer()), nullptr));
-      instr_list.Append(new assem::MoveInstr(
+      instr_list.Append(new assem::OperInstr(
           "movq `s0, (`s1)", nullptr,
           new temp::TempList(
-              {args_temps->NthTemp(arg_cnt), reg_manager->StackPointer()})));
+              {args_temps->NthTemp(arg_cnt), reg_manager->StackPointer()}),nullptr));
     }
   }
   instr_list.Append(new assem::OperInstr(

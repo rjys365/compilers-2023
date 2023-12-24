@@ -115,6 +115,11 @@ assem::Proc *X64Frame::procEntryExit3(assem::InstrList *body) {
   return new assem::Proc(prolog, body, epilog);
 }
 
+int X64Frame::directlyAllocInFrameLocal() {
+  last_frame_var_offset -= reg_manager->WordSize();
+  return last_frame_var_offset;
+}
+
 /* TODO: Put your lab5 code here */
 
 void X64RegManager::add_register(std::string name) {
