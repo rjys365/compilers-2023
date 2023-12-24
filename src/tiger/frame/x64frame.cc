@@ -67,6 +67,29 @@ tree::Stm *X64Frame::procEntryExit1(tree::Stm *stm) {
   auto arg_regs_iter = arg_regs_list.begin();
   int arg_cnt = 0;
 
+  tree::Stm *save_stm = nullptr;
+  auto &callee_saves_list = reg_manager->CalleeSaves()->GetList();
+  for(auto &callee_save:callee_saves_list){
+    temp::Temp *saved_temp=temp::TempFactory::NewTemp();
+    saved_regs_.emplace_back(callee_save,saved_temp);
+    if(save_stm==nullptr){
+      save_stm = new tree::MoveStm(new tree::TempExp(saved_temp), new tree::TempExp(callee_save));
+    }
+    else{
+      save_stm = new tree::SeqStm(save_stm, new tree::MoveStm(new tree::TempExp(saved_temp), new tree::TempExp(callee_save)));
+    }
+  }
+
+  tree::Stm *restore_stm = nullptr;
+  for(auto iter=saved_regs_.rbegin();iter!=saved_regs_.rend();iter++){
+    if(restore_stm==nullptr){
+      restore_stm = new tree::MoveStm(new tree::TempExp(iter->first), new tree::TempExp(iter->second));
+    }
+    else{
+      restore_stm = new tree::SeqStm(restore_stm, new tree::MoveStm(new tree::TempExp(iter->first), new tree::TempExp(iter->second)));
+    }
+  }
+
   tree::Stm *new_stm = nullptr;
 
   for (auto &formal : formal_list) {
@@ -90,7 +113,13 @@ tree::Stm *X64Frame::procEntryExit1(tree::Stm *stm) {
     arg_cnt++;
     if(arg_regs_iter!=arg_regs_list.end())arg_regs_iter++;
   }
-  new_stm = new tree::SeqStm(new_stm, stm);
+  if(new_stm==nullptr){
+    new_stm = stm;
+  }
+  else{
+    new_stm = new tree::SeqStm(new_stm, stm);
+  }
+  new_stm = new tree::SeqStm(save_stm,new tree::SeqStm(new_stm,restore_stm));
   return new_stm;
 }
 
@@ -194,7 +223,7 @@ temp::TempList *X64RegManager::CallerSaves() {
 
 temp::TempList *X64RegManager::CalleeSaves() {
   // Implement the logic to return callee-saved registers.
-  // will be saved and restored by ProcEntryExit3
+  // will be saved and restored by ProcEntryExit1
   temp::TempList *temp_list = new temp::TempList();
   temp_list->Append(registers[1]);  // rbx
   temp_list->Append(registers[6]);  // rbp

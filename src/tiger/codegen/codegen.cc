@@ -153,24 +153,9 @@ void CodeGen::Codegen() {
   assem::InstrList *instr_list = new assem::InstrList();
   std::string fs = frame_->name()->Name() + "_framesize";
 
-  auto &callee_saves_list = reg_manager->CalleeSaves()->GetList();
-  for (auto &reg : callee_saves_list) {
-    temp::Temp *saved_temp = temp::TempFactory::NewTemp();
-    saved_regs_.emplace_back(reg, saved_temp);
-    instr_list->Append(new assem::MoveInstr("movq `s0, `d0",
-                                            new temp::TempList(saved_temp),
-                                            new temp::TempList(reg)));
-  }
-
   auto &traces_stm_list = traces_->GetStmList()->GetList();
   for (auto &stm : traces_stm_list) {
     stm->Munch(*instr_list, fs);
-  }
-
-  for (auto it = saved_regs_.rbegin(); it != saved_regs_.rend(); it++) {
-    instr_list->Append(new assem::MoveInstr("movq `s0, `d0",
-                                            new temp::TempList(it->first),
-                                            new temp::TempList(it->second)));
   }
 
   instr_list = frame_->procEntryExit2(instr_list);
