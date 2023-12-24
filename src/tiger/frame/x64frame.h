@@ -37,6 +37,7 @@ private:
   temp::Label *label;
   std::list<Access *> formal_list;
   int last_frame_var_offset = 0;
+  std::list<std::pair<temp::Temp *, temp::Temp *>> saved_regs_;
 
 public:
   // this class should be able to be created by

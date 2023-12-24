@@ -36,8 +36,8 @@ struct MemoryAddress {
   int8_t scale;
   tree::Exp *index;
 
-  std::string
-  munch(assem::InstrList &instr_list, std::string_view fs, int &current_temp_idx, temp::TempList *temp_list);
+  std::string munch(assem::InstrList &instr_list, std::string_view fs,
+                    int &current_temp_idx, temp::TempList *temp_list);
 };
 
 // TODO: munch memory address
@@ -72,7 +72,6 @@ private:
   std::string fs_; // Frame size label_
   std::unique_ptr<canon::Traces> traces_;
   std::unique_ptr<AssemInstr> assem_instr_;
-  std::list<std::pair<temp::Temp *, temp::Temp *>> saved_regs_;
 };
 
 } // namespace cg

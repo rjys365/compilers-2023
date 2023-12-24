@@ -148,8 +148,9 @@ void ProgTr::Translate() { /* TODO: Put your lab5 code here */
   auto *root_exp_ty = this->absyn_tree_->Translate(
       this->venv_.get(), this->tenv_.get(), this->main_level_.get(), nullptr,
       this->errormsg_.get());
-  frags->PushBack(new frame::ProcFrag(root_exp_ty->exp_->UnNx(),
-                                      this->main_level_->frame_));
+  tree::Stm *stm = root_exp_ty->exp_->UnNx();
+  stm = this->main_level_->frame_->procEntryExit1(stm);
+  frags->PushBack(new frame::ProcFrag(stm, this->main_level_->frame_));
 }
 
 tree::Exp *calc_static_link(tr::Level *current_level, tr::Level *dest_level,
