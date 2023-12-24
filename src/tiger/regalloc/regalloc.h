@@ -23,11 +23,33 @@ public:
   Result(Result &&result) = delete;
   Result &operator=(const Result &result) = delete;
   Result &operator=(Result &&result) = delete;
-  ~Result();
+  ~Result() {
+    delete coloring_;
+    delete il_;
+  }
 };
 
 class RegAllocator {
   /* TODO: Put your lab6 code here */
+public:
+  RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> assem_instr)
+      : frame_(frame), assem_instr_(std::move(assem_instr)) {
+    instr_list_ = assem_instr_->GetInstrList();
+  }
+  void RegAlloc();
+  col::Result AllocateOneRound();
+  std::unique_ptr<Result> TransferResult() {
+    return std::make_unique<Result>(temp_map_, instr_list_);
+  }
+
+private:
+  frame::Frame *frame_;
+  std::unique_ptr<cg::AssemInstr> assem_instr_;
+  assem::InstrList *instr_list_;
+  temp::Map *temp_map_;
+
+  void rewrite_program(const std::list<temp::Temp *> &spills);
+  void remove_trivial_moves();
 };
 
 } // namespace ra
