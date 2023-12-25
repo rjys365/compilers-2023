@@ -36,10 +36,8 @@ void Color::init() {
 
 void Color::run() {
   make_worklist();
-  int round_cnt=0;
   do {
-    round_cnt++;
-    assert(select_stack.size()==select_stack_set.size());
+    assert(select_stack.size() == select_stack_set.size());
     if (!simplify_worklist.empty()) {
       simplify();
     } else if (!worklist_moves.empty()) {
@@ -62,8 +60,9 @@ Result Color::GetResult() {
     }
     return res;
   }
-  for(const auto &pair:color_map){
-    res.coloring[pair.first->NodeInfo()]=*(reg_manager->temp_map_->Look(pair.second->NodeInfo()));
+  for (const auto &pair : color_map) {
+    res.coloring[pair.first->NodeInfo()] =
+        *(reg_manager->temp_map_->Look(pair.second->NodeInfo()));
   }
   return res;
 }
@@ -113,7 +112,7 @@ void Color::coalesce() {
     add_worklist(u);
     add_worklist(v);
   } else if ((is_precolored(u) && george(u, v)) ||
-              (!is_precolored(u) && briggs(u, v))) {
+             (!is_precolored(u) && briggs(u, v))) {
     coalesced_moves.insert(move);
     combine(u, v);
     add_worklist(u);
@@ -168,24 +167,14 @@ void Color::assign_colors() {
     auto node = select_stack.top();
     select_stack.pop();
     select_stack_set.erase(node);
-    assert(precolored.count(node)==0);
+    assert(precolored.count(node) == 0);
     auto ok_colors = precolored;
     auto &succ_list = node->Succ()->GetList();
-    int contradict_cnt_precolored=0;
-    int contradict_cnt_colored=0;
     for (const auto &succ : succ_list) {
       auto succ_alias = get_alias(succ);
-      if(colored_nodes.count(succ_alias)){
+      if (colored_nodes.count(succ_alias) || precolored.count(succ_alias)) {
         ok_colors.erase(color_map[succ_alias]);
-        contradict_cnt_colored++;
       }
-      if(precolored.count(succ_alias)){
-        ok_colors.erase(succ_alias);
-        contradict_cnt_precolored++;
-      }
-      // if (colored_nodes.count(succ_alias) || precolored.count(succ_alias)) {
-      //   ok_colors.erase(color_map[succ_alias]);
-      // }
     }
     if (ok_colors.empty()) {
       spilled_nodes.insert(node);
@@ -312,7 +301,7 @@ void Color::combine(INodePtr u, INodePtr v) {
   enable_moves(v);
   auto succ_list = adjacent(v);
   for (const auto &succ : succ_list) {
-    if(!succ->Succ()->Contain(u)){
+    if (!succ->Succ()->Contain(u)) {
       live_graph_->interf_graph->AddEdge(succ, u);
       live_graph_->interf_graph->AddEdge(u, succ);
       degree[succ]++;
